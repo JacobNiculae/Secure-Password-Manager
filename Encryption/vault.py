@@ -10,4 +10,4 @@ def encrypt_password(plaintext: str, key: bytes) -> tuple:
 def decrypt_password(iv: bytes, ciphertext: bytes, key: bytes) -> str:
     aesgcm = AESGCM(key)
     plaintext = aesgcm.decrypt(iv, ciphertext, None)
-    return plaintext.decode()
+    return plaintext.decode() 
