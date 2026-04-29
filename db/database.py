@@ -66,3 +66,20 @@ def delete_entry(entry_id: int):
     cursor.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
     conn.commit()
     conn.close()
+
+def save_master_hash(hash_value: bytes):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("ALTER TABLE master ADD COLUMN hash BLOB")
+    conn.commit()
+    cursor.execute("UPDATE master SET hash = ?", (hash_value,))
+    conn.commit()
+    conn.close()
+
+def get_master_hash() -> bytes:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT hash FROM master LIMIT 1")
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else None
