@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
 QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QMessageBox, QHeaderView)
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QColor, QPalette
+from PyQt6.QtGui import QColor
 import pyperclip
 from Encryption.vault import decrypt_password
 from db.database import get_entries, delete_entry
@@ -76,7 +76,6 @@ class MainWindow(QWidget):
                 padding: 8px;
                 border: none;
                 font-weight: bold;
-                text-transform: uppercase;
                 font-size: 11px;
             }}
             QScrollBar:vertical {{
@@ -94,12 +93,10 @@ class MainWindow(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(12)
 
-        # Search bar
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("🔍  Search by site...")
         self.search_input.textChanged.connect(self.filter_entries)
 
-        # Buttons
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(8)
 
@@ -124,7 +121,6 @@ class MainWindow(QWidget):
                     self.delete_btn, self.toggle_btn, self.lock_btn]:
             btn_layout.addWidget(btn)
 
-        # Table
         self.table = QTableWidget()
         self.table.setColumnCount(3)
         self.table.setHorizontalHeaderLabels(["Site", "Username", "Password"])
@@ -166,8 +162,6 @@ class MainWindow(QWidget):
             for col in range(3):
                 self.table.item(row, col).setForeground(QColor(DARK['text']))
 
-        self.table.setRowHeight(row, 40) if entries else None
-
     def filter_entries(self, text):
         filtered = [e for e in self.entries if text.lower() in e[1].lower()]
         self.display_entries(filtered)
@@ -205,6 +199,8 @@ class MainWindow(QWidget):
 
     def open_add_entry(self):
         dialog = AddEntryDialog(self.key, self)
+        dialog.raise_()
+        dialog.activateWindow()
         dialog.exec()
         self.load_entries()
 
@@ -215,6 +211,8 @@ class MainWindow(QWidget):
             return
         entry = self.entries[row]
         dialog = AddEntryDialog(self.key, self, entry=entry)
+        dialog.raise_()
+        dialog.activateWindow()
         dialog.exec()
         self.load_entries()
 

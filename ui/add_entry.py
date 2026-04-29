@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
-QLineEdit, QPushButton, QCheckBox, QSpinBox, QMessageBox)
+QLineEdit, QPushButton, QCheckBox, QMessageBox)
 from PyQt6.QtCore import Qt
 from Encryption.vault import encrypt_password, decrypt_password
 from db.database import save_entry, delete_entry
@@ -19,8 +19,7 @@ class AddEntryDialog(QDialog):
         self.key = key
         self.entry = entry
         self.setWindowTitle("Edit Entry" if entry else "Add New Entry")
-        self.setFixedSize(420, 320)
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
+        self.setFixedSize(420, 340)
         self.apply_theme()
         self.init_ui()
         if entry:
@@ -30,49 +29,59 @@ class AddEntryDialog(QDialog):
         self.setStyleSheet(f"""
             QDialog {{
                 background-color: {DARK['bg']};
+                border-radius: 12px;
+            }}
+            QWidget {{
+                background-color: {DARK['bg']};
                 color: {DARK['text']};
                 font-family: 'Segoe UI';
                 font-size: 13px;
             }}
             QLineEdit {{
                 background-color: {DARK['surface']};
-                border: 1px solid #444466;
+                border: 1px solid #33334d;
                 border-radius: 6px;
-                padding: 6px 10px;
+                padding: 8px 10px;
                 color: {DARK['text']};
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {DARK['accent']};
             }}
             QPushButton {{
                 background-color: {DARK['surface']};
                 color: {DARK['text']};
-                border: 1px solid #444466;
+                border: 1px solid #33334d;
                 border-radius: 6px;
                 padding: 6px 14px;
             }}
             QPushButton:hover {{
                 background-color: {DARK['accent']};
                 color: white;
+                border: 1px solid {DARK['accent']};
             }}
             QLabel {{
                 color: {DARK['subtext']};
                 font-size: 11px;
                 font-weight: bold;
+                background: transparent;
             }}
             QCheckBox {{
                 color: {DARK['text']};
             }}
-            QSpinBox {{
+            QLineEdit#length_input {{
                 background-color: {DARK['surface']};
-                color: {DARK['text']};
-                border: 1px solid #444466;
+                border: 1px solid #33334d;
                 border-radius: 6px;
-                padding: 4px;
+                padding: 4px 8px;
+                color: {DARK['text']};
+                max-width: 45px;
             }}
         """)
 
     def init_ui(self):
         layout = QVBoxLayout()
-        layout.setSpacing(8)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
+        layout.setContentsMargins(24, 24, 24, 24)
 
         self.site_input = QLineEdit()
         self.site_input.setPlaceholderText("e.g. google.com")
@@ -85,9 +94,13 @@ class AddEntryDialog(QDialog):
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
 
         gen_layout = QHBoxLayout()
-        self.length_spin = QSpinBox()
-        self.length_spin.setRange(8, 64)
-        self.length_spin.setValue(20)
+        gen_layout.setSpacing(8)
+
+        self.length_input = QLineEdit()
+        self.length_input.setObjectName("length_input")
+        self.length_input.setText("20")
+        self.length_input.setFixedWidth(45)
+
         self.symbols_check = QCheckBox("Symbols")
         self.symbols_check.setChecked(True)
         self.numbers_check = QCheckBox("Numbers")
@@ -96,13 +109,34 @@ class AddEntryDialog(QDialog):
         self.gen_btn.clicked.connect(self.generate)
 
         gen_layout.addWidget(QLabel("Length:"))
-        gen_layout.addWidget(self.length_spin)
+        gen_layout.addWidget(self.length_input)
         gen_layout.addWidget(self.symbols_check)
         gen_layout.addWidget(self.numbers_check)
+        gen_layout.addStretch()
         gen_layout.addWidget(self.gen_btn)
 
         self.save_btn = QPushButton("Save Entry")
+        self.save_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {DARK['accent']};
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 10px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: #9580ff;
+            }}
+        """)
         self.save_btn.clicked.connect(self.save)
+
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(self.close)
+
+        btn_layout = QHBoxLayout()
+        btn_layout.addWidget(cancel_btn)
+        btn_layout.addWidget(self.save_btn)
 
         layout.addWidget(QLabel("SITE"))
         layout.addWidget(self.site_input)
@@ -111,7 +145,8 @@ class AddEntryDialog(QDialog):
         layout.addWidget(QLabel("PASSWORD"))
         layout.addWidget(self.password_input)
         layout.addLayout(gen_layout)
-        layout.addWidget(self.save_btn)
+        layout.addStretch()
+        layout.addLayout(btn_layout)
 
         self.setLayout(layout)
 
@@ -128,7 +163,7 @@ class AddEntryDialog(QDialog):
 
     def generate(self):
         password = generate_password(
-            length=self.length_spin.value(),
+            length=int(self.length_input.text() or 20),
             use_symbols=self.symbols_check.isChecked(),
             use_numbers=self.numbers_check.isChecked()
         )
@@ -149,5 +184,4 @@ class AddEntryDialog(QDialog):
 
         iv, ciphertext = encrypt_password(password, self.key)
         save_entry(site, username, iv, ciphertext)
-        QMessageBox.information(self, "Saved", "Entry saved successfully")
         self.close()
