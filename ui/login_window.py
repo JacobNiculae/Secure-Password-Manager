@@ -1,18 +1,21 @@
 import hashlib
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+QLineEdit, QPushButton, QDialog)
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
 from Encryption.keygen import derive_key, generate_salt
 from db.database import init_db, save_master_salt, get_master_salt, save_master_hash, get_master_hash
 from server.local_server import set_session_key
+
 
 class LoginWindow(QWidget):
     def __init__(self, on_success):
         super().__init__()
         self.on_success = on_success
+        self.attempts = 0
+        self.max_attempts = 5
         self.setWindowTitle("Secure Password Manager")
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setFixedSize(420, 320)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.apply_theme()
         self.init_ui()
 
@@ -53,7 +56,6 @@ class LoginWindow(QWidget):
         layout.setContentsMargins(40, 40, 40, 40)
         layout.setSpacing(16)
 
-        # Lock icon and title
         icon_label = QLabel("🔐")
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         icon_label.setStyleSheet("font-size: 48px; background: transparent;")
@@ -88,7 +90,7 @@ class LoginWindow(QWidget):
         password = self.password_input.text()
 
         if not password:
-            QMessageBox.warning(self, "Error", "Password cannot be empty")
+            self.show_warning("Password cannot be empty.")
             return
 
         init_db()
@@ -108,9 +110,72 @@ class LoginWindow(QWidget):
             verification = hashlib.sha256(key).digest()
             stored_hash = get_master_hash()
             if verification != stored_hash:
-                QMessageBox.warning(self, "Error", "Incorrect password.")
+                self.attempts += 1
+                remaining = self.max_attempts - self.attempts
+                if self.attempts >= self.max_attempts:
+                    self.show_warning("Maximum attempts reached. Application will now close.")
+                    self.close()
+                    return
+                self.show_warning(f"Incorrect password. {remaining} attempt{'s' if remaining != 1 else ''} remaining.")
                 self.password_input.clear()
                 return
             set_session_key(key)
             self.on_success(key)
             self.close()
+
+    def show_warning(self, message: str):
+        warn = QDialog(self)
+        warn.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
+        warn.setFixedSize(320, 160)
+        warn.setStyleSheet("""
+            QDialog {
+                background-color: #1e1e2e;
+                border: 1px solid #f38ba8;
+                border-radius: 10px;
+            }
+            QWidget {
+                background-color: #1e1e2e;
+                font-family: 'Segoe UI';
+            }
+            QLabel {
+                color: #cdd6f4;
+            }
+            QPushButton {
+                background-color: #f38ba8;
+                color: #1e1e2e;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 24px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #ff9eb5;
+            }
+        """)
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(16)
+
+        title = QLabel("⚠  WARNING")
+        title.setStyleSheet("color: #f38ba8; font-size: 13px; font-weight: bold;")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        msg = QLabel(message)
+        msg.setWordWrap(True)
+        msg.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        msg.setStyleSheet("font-size: 13px; color: #cdd6f4;")
+
+        ok_btn = QPushButton("OK")
+        ok_btn.clicked.connect(warn.close)
+
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        btn_layout.addWidget(ok_btn)
+        btn_layout.addStretch()
+
+        layout.addWidget(title)
+        layout.addWidget(msg)
+        layout.addLayout(btn_layout)
+        warn.setLayout(layout)
+        warn.exec()
