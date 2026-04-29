@@ -20,6 +20,7 @@ class AddEntryDialog(QDialog):
         self.entry = entry
         self.setWindowTitle("Edit Entry" if entry else "Add New Entry")
         self.setFixedSize(420, 320)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.apply_theme()
         self.init_ui()
         if entry:

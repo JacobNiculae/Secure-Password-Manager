@@ -11,6 +11,7 @@ class LoginWindow(QWidget):
         super().__init__()
         self.on_success = on_success
         self.setWindowTitle("Secure Password Manager")
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setFixedSize(420, 320)
         self.apply_theme()
         self.init_ui()

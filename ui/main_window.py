@@ -22,6 +22,7 @@ class MainWindow(QWidget):
         super().__init__()
         self.key = key
         self.setWindowTitle("Secure Password Manager")
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setMinimumSize(900, 600)
         self.show_passwords = False
         self.apply_theme()
