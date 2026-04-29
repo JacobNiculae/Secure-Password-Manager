@@ -74,16 +74,21 @@ class MainWindow(QWidget):
         filtered = [e for e in self.entries if text.lower() in e[1].lower()]
         self.display_entries(filtered)
 
-    def copy_password(self):
-        row = self.table.currentRow()
-        if row == -1:
-            QMessageBox.warning(self, "Error", "Select an entry first")
-            return
-        password = self.table.item(row, 2).data(Qt.ItemDataRole.UserRole)
+def copy_password(self):
+    row = self.table.currentRow()
+    if row == -1:
+        QMessageBox.warning(self, "Error", "Select an entry first")
+        return
+    entry = self.entries[row]
+    iv, ciphertext = entry[3], entry[4]
+    try:
+        password = decrypt_password(iv, ciphertext, self.key)
         pyperclip.copy(password)
         QMessageBox.information(self, "Copied", "Password copied. Clipboard clears in 30 seconds.")
         QTimer.singleShot(30000, lambda: pyperclip.copy(""))
-
+    except Exception as e:
+        QMessageBox.warning(self, "Error", f"Decryption failed: {e}")
+        
     def delete_selected(self):
         row = self.table.currentRow()
         if row == -1:
