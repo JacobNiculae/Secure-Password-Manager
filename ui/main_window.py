@@ -91,15 +91,18 @@ class MainWindow(QWidget):
             QMessageBox.warning(self, "Error", "Select an entry first")
             return
         entry = self.entries[row]
+        print(f"Entry: {entry}")
+        print(f"IV type: {type(entry[3])}, length: {len(entry[3])}")
+        print(f"Ciphertext type: {type(entry[4])}, length: {len(entry[4])}")
+        print(f"Key type: {type(self.key)}, length: {len(self.key)}")
         iv, ciphertext = entry[3], entry[4]
         try:
             password = decrypt_password(iv, ciphertext, self.key)
             pyperclip.copy(password)
-            QMessageBox.information(self, "Copied", "Password copied. Clipboard clears in 30 seconds.")
-            QTimer.singleShot(30000, lambda: pyperclip.copy(""))
+            QMessageBox.information(self, "Copied", "Password copied.")
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Decryption failed: {e}")
-
+    
     def delete_selected(self):
         row = self.table.currentRow()
         if row == -1:
