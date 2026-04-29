@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QMessageBox)
 from PyQt6.QtCore import Qt, QTimer
 import pyperclip
@@ -12,6 +12,7 @@ class MainWindow(QWidget):
         self.key = key
         self.setWindowTitle("Secure Password Manager")
         self.setMinimumSize(700, 500)
+        self.show_passwords = False
         self.init_ui()
         self.load_entries()
 
@@ -33,12 +34,15 @@ class MainWindow(QWidget):
         self.copy_btn.clicked.connect(self.copy_password)
         self.delete_btn = QPushButton("Delete Entry")
         self.delete_btn.clicked.connect(self.delete_selected)
+        self.toggle_btn = QPushButton("Show Passwords")
+        self.toggle_btn.clicked.connect(self.toggle_passwords)
         self.lock_btn = QPushButton("Lock Vault")
         self.lock_btn.clicked.connect(self.lock_vault)
 
         btn_layout.addWidget(self.add_btn)
         btn_layout.addWidget(self.copy_btn)
         btn_layout.addWidget(self.delete_btn)
+        btn_layout.addWidget(self.toggle_btn)
         btn_layout.addWidget(self.lock_btn)
 
         # Table
@@ -67,28 +71,35 @@ class MainWindow(QWidget):
                 password = "[decryption failed]"
             self.table.setItem(row, 0, QTableWidgetItem(site))
             self.table.setItem(row, 1, QTableWidgetItem(username))
-            self.table.setItem(row, 2, QTableWidgetItem("••••••••"))
-            self.table.item(row, 2).setData(Qt.ItemDataRole.UserRole, password)
+            if self.show_passwords:
+                self.table.setItem(row, 2, QTableWidgetItem(password))
+            else:
+                self.table.setItem(row, 2, QTableWidgetItem("••••••••"))
 
     def filter_entries(self, text):
         filtered = [e for e in self.entries if text.lower() in e[1].lower()]
         self.display_entries(filtered)
 
-def copy_password(self):
-    row = self.table.currentRow()
-    if row == -1:
-        QMessageBox.warning(self, "Error", "Select an entry first")
-        return
-    entry = self.entries[row]
-    iv, ciphertext = entry[3], entry[4]
-    try:
-        password = decrypt_password(iv, ciphertext, self.key)
-        pyperclip.copy(password)
-        QMessageBox.information(self, "Copied", "Password copied. Clipboard clears in 30 seconds.")
-        QTimer.singleShot(30000, lambda: pyperclip.copy(""))
-    except Exception as e:
-        QMessageBox.warning(self, "Error", f"Decryption failed: {e}")
-        
+    def toggle_passwords(self):
+        self.show_passwords = not self.show_passwords
+        self.toggle_btn.setText("Hide Passwords" if self.show_passwords else "Show Passwords")
+        self.display_entries(self.entries)
+
+    def copy_password(self):
+        row = self.table.currentRow()
+        if row == -1:
+            QMessageBox.warning(self, "Error", "Select an entry first")
+            return
+        entry = self.entries[row]
+        iv, ciphertext = entry[3], entry[4]
+        try:
+            password = decrypt_password(iv, ciphertext, self.key)
+            pyperclip.copy(password)
+            QMessageBox.information(self, "Copied", "Password copied. Clipboard clears in 30 seconds.")
+            QTimer.singleShot(30000, lambda: pyperclip.copy(""))
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Decryption failed: {e}")
+
     def delete_selected(self):
         row = self.table.currentRow()
         if row == -1:
