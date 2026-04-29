@@ -3,6 +3,9 @@ __pycache__/
 *.py[codz]
 *$py.class
 vault.db
+build/
+dist/
+*.spec
 
 # C extensions
 *.so
