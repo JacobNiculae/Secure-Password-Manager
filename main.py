@@ -7,25 +7,27 @@ from server.local_server import run_server
 from db.database import init_db
 
 main_window = None
+login_window = None
 
 def start_server():
     thread = threading.Thread(target=run_server, daemon=True)
     thread.start()
 
 def main():
-    global main_window
+    global main_window, login_window
     init_db()
     start_server()
 
     app = QApplication(sys.argv)
+    app.setStyle("Fusion")
 
     def on_login_success(key: bytes):
         global main_window
         main_window = MainWindow(key)
         main_window.show()
 
-    login = LoginWindow(on_success=on_login_success)
-    login.show()
+    login_window = LoginWindow(on_success=on_login_success)
+    login_window.show()
 
     sys.exit(app.exec())
 
