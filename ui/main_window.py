@@ -146,11 +146,15 @@ class MainWindow(QWidget):
     def display_entries(self, entries):
         self.table.setRowCount(len(entries))
         for row, entry in enumerate(entries):
-            id_, site, username, iv, ciphertext = entry
+            id_, iv_site, enc_site, iv_user, enc_user, iv_pass, enc_pass = entry
             try:
-                password = decrypt_password(iv, ciphertext, self.key)
+                site = decrypt_password(iv_site, enc_site, self.key)
+                username = decrypt_password(iv_user, enc_user, self.key)
+                password = decrypt_password(iv_pass, enc_pass, self.key)
             except Exception:
-                password = "[decryption failed]"
+                site = "[error]"
+                username = "[error]"
+                password = "[error]"
 
             self.table.setItem(row, 0, QTableWidgetItem(site))
             self.table.setItem(row, 1, QTableWidgetItem(username))
@@ -163,7 +167,18 @@ class MainWindow(QWidget):
                 self.table.item(row, col).setForeground(QColor(DARK['text']))
 
     def filter_entries(self, text):
-        filtered = [e for e in self.entries if text.lower() in e[1].lower()]
+        if not text:
+            self.display_entries(self.entries)
+            return
+        filtered = []
+        for entry in self.entries:
+            id_, iv_site, enc_site, iv_user, enc_user, iv_pass, enc_pass = entry
+            try:
+                site = decrypt_password(iv_site, enc_site, self.key)
+                if text.lower() in site.lower():
+                    filtered.append(entry)
+            except Exception:
+                pass
         self.display_entries(filtered)
 
     def toggle_passwords(self):
@@ -177,15 +192,15 @@ class MainWindow(QWidget):
             QMessageBox.warning(self, "Error", "Select an entry first")
             return
         entry = self.entries[row]
-        iv, ciphertext = entry[3], entry[4]
+        id_, iv_site, enc_site, iv_user, enc_user, iv_pass, enc_pass = entry
         try:
-            password = decrypt_password(iv, ciphertext, self.key)
+            password = decrypt_password(iv_pass, enc_pass, self.key)
             pyperclip.copy(password)
             QMessageBox.information(self, "Copied", "Password copied. Clipboard clears in 30 seconds.")
             QTimer.singleShot(30000, lambda: pyperclip.copy(""))
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Decryption failed: {e}")
-
+    
     def delete_selected(self):
         row = self.table.currentRow()
         if row == -1:

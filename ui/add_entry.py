@@ -151,15 +151,14 @@ class AddEntryDialog(QDialog):
         self.setLayout(layout)
 
     def populate_fields(self):
-        id_, site, username, iv, ciphertext = self.entry
-        self.site_input.setText(site)
-        self.username_input.setText(username)
+        id_, iv_site, enc_site, iv_user, enc_user, iv_pass, enc_pass = self.entry
         try:
-            password = decrypt_password(iv, ciphertext, self.key)
-            self.password_input.setText(password)
+            self.site_input.setText(decrypt_password(iv_site, enc_site, self.key))
+            self.username_input.setText(decrypt_password(iv_user, enc_user, self.key))
+            self.password_input.setText(decrypt_password(iv_pass, enc_pass, self.key))
             self.password_input.setEchoMode(QLineEdit.EchoMode.Normal)
         except Exception:
-            self.password_input.setPlaceholderText("Could not decrypt")
+            self.site_input.setPlaceholderText("Could not decrypt")
 
     def generate(self):
         password = generate_password(
@@ -182,6 +181,9 @@ class AddEntryDialog(QDialog):
         if self.entry:
             delete_entry(self.entry[0])
 
-        iv, ciphertext = encrypt_password(password, self.key)
-        save_entry(site, username, iv, ciphertext)
+        iv_site, enc_site = encrypt_password(site, self.key)
+        iv_user, enc_user = encrypt_password(username, self.key)
+        iv_pass, enc_pass = encrypt_password(password, self.key)
+
+        save_entry(iv_site, enc_site, iv_user, enc_user, iv_pass, enc_pass)
         self.close()

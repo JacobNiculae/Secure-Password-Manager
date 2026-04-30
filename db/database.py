@@ -1,5 +1,4 @@
 import sqlite3
-import os
 
 DB_PATH = "vault.db"
 
@@ -10,17 +9,20 @@ def init_db():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS master (
             id INTEGER PRIMARY KEY,
-            salt BLOB NOT NULL
+            salt BLOB NOT NULL,
+            hash BLOB
         )
     ''')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            site TEXT NOT NULL,
-            username TEXT NOT NULL,
-            iv BLOB NOT NULL,
-            ciphertext BLOB NOT NULL
+            iv_site BLOB NOT NULL,
+            enc_site BLOB NOT NULL,
+            iv_username BLOB NOT NULL,
+            enc_username BLOB NOT NULL,
+            iv_password BLOB NOT NULL,
+            enc_password BLOB NOT NULL
         )
     ''')
 
@@ -42,36 +44,9 @@ def get_master_salt() -> bytes:
     conn.close()
     return row[0] if row else None
 
-def save_entry(site: str, username: str, iv: bytes, ciphertext: bytes):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO entries (site, username, iv, ciphertext) VALUES (?, ?, ?, ?)",
-        (site, username, iv, ciphertext)
-    )
-    conn.commit()
-    conn.close()
-
-def get_entries():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, site, username, iv, ciphertext FROM entries")
-    rows = cursor.fetchall()
-    conn.close()
-    return rows
-
-def delete_entry(entry_id: int):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
-    conn.commit()
-    conn.close()
-
 def save_master_hash(hash_value: bytes):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("ALTER TABLE master ADD COLUMN hash BLOB")
-    conn.commit()
     cursor.execute("UPDATE master SET hash = ?", (hash_value,))
     conn.commit()
     conn.close()
@@ -83,3 +58,28 @@ def get_master_hash() -> bytes:
     row = cursor.fetchone()
     conn.close()
     return row[0] if row else None
+
+def save_entry(iv_site, enc_site, iv_username, enc_username, iv_password, enc_password):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO entries (iv_site, enc_site, iv_username, enc_username, iv_password, enc_password) VALUES (?, ?, ?, ?, ?, ?)",
+        (iv_site, enc_site, iv_username, enc_username, iv_password, enc_password)
+    )
+    conn.commit()
+    conn.close()
+
+def get_entries():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, iv_site, enc_site, iv_username, enc_username, iv_password, enc_password FROM entries")
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+def delete_entry(entry_id: int):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
+    conn.commit()
+    conn.close()
