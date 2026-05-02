@@ -284,7 +284,6 @@ class MainWindow(QWidget):
         self.load_entries()
 
     def lock_vault(self):
-        from server.local_server import clear_session_key
-        clear_session_key()
-        self.key = None
+        from main import lock_vault as do_lock
+        do_lock()
         self.close()
