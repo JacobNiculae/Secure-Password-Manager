@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
-QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QMessageBox, QHeaderView)
-from PyQt6.QtCore import Qt, QTimer
+QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QMessageBox, QHeaderView, QLabel)
+from PyQt6.QtCore import Qt, QTimer, QPoint
 from PyQt6.QtGui import QColor
 import pyperclip
 from Encryption.vault import decrypt_password
@@ -22,9 +22,10 @@ class MainWindow(QWidget):
         super().__init__()
         self.key = key
         self.setWindowTitle("Secure Password Manager")
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setMinimumSize(900, 600)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.show_passwords = False
+        self._drag_pos = None
         self.apply_theme()
         self.init_ui()
         self.load_entries()
@@ -90,8 +91,48 @@ class MainWindow(QWidget):
 
     def init_ui(self):
         layout = QVBoxLayout()
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(12)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # Custom title bar
+        title_bar = QWidget()
+        title_bar.setFixedHeight(40)
+        title_bar.setStyleSheet(f"background-color: {DARK['surface']}; border-bottom: 1px solid #333355;")
+        title_layout = QHBoxLayout(title_bar)
+        title_layout.setContentsMargins(16, 0, 8, 0)
+
+        title_label = QLabel("🔐 Secure Password Manager")
+        title_label.setStyleSheet(f"color: {DARK['text']}; font-weight: bold; font-size: 13px;")
+
+        minimize_btn = QPushButton("—")
+        minimize_btn.setFixedSize(32, 32)
+        minimize_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent;
+                border: none;
+                color: {DARK['subtext']};
+                font-size: 14px;
+            }}
+            QPushButton:hover {{
+                background: #444466;
+                border-radius: 4px;
+                color: white;
+            }}
+        """)
+        minimize_btn.clicked.connect(self.showMinimized)
+
+        title_layout.addWidget(title_label)
+        title_layout.addStretch()
+        title_layout.addWidget(minimize_btn)
+
+        title_bar.mousePressEvent = self.title_bar_mouse_press
+        title_bar.mouseMoveEvent = self.title_bar_mouse_move
+
+        # Content area
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(20, 16, 20, 20)
+        content_layout.setSpacing(12)
 
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("🔍  Search by site...")
@@ -134,10 +175,21 @@ class MainWindow(QWidget):
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
 
-        layout.addWidget(self.search_input)
-        layout.addLayout(btn_layout)
-        layout.addWidget(self.table)
+        content_layout.addWidget(self.search_input)
+        content_layout.addLayout(btn_layout)
+        content_layout.addWidget(self.table)
+
+        layout.addWidget(title_bar)
+        layout.addWidget(content)
         self.setLayout(layout)
+
+    def title_bar_mouse_press(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+
+    def title_bar_mouse_move(self, event):
+        if event.buttons() == Qt.MouseButton.LeftButton and self._drag_pos:
+            self.move(event.globalPosition().toPoint() - self._drag_pos)
 
     def load_entries(self):
         self.entries = get_entries()
@@ -200,7 +252,7 @@ class MainWindow(QWidget):
             QTimer.singleShot(30000, lambda: pyperclip.copy(""))
         except Exception as e:
             QMessageBox.warning(self, "Error", f"Decryption failed: {e}")
-    
+
     def delete_selected(self):
         row = self.table.currentRow()
         if row == -1:

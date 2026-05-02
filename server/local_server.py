@@ -1,10 +1,11 @@
 from flask import Flask, request, jsonify
-from Encryption.keygen import derive_key
+from flask_cors import CORS
 from Encryption.vault import encrypt_password
 from db.database import save_entry
 from utils.password_gen import generate_password
 
 app = Flask(__name__)
+CORS(app)
 
 session_key = None
 
@@ -26,8 +27,12 @@ def generate():
     username = data.get("username", "")
 
     password = generate_password()
-    iv, ciphertext = encrypt_password(password, session_key)
-    save_entry(site, username, iv, ciphertext)
+
+    iv_site, enc_site = encrypt_password(site, session_key)
+    iv_user, enc_user = encrypt_password(username, session_key)
+    iv_pass, enc_pass = encrypt_password(password, session_key)
+
+    save_entry(iv_site, enc_site, iv_user, enc_user, iv_pass, enc_pass)
 
     return jsonify({"password": password})
 
