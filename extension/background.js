@@ -9,7 +9,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             })
         })
         .then(res => res.json())
-        .then(data => sendResponse({ success: true, password: data.password }))
+        .then(data => {
+            if (data.password) {
+                sendResponse({ success: true, password: data.password });
+            } else {
+                sendResponse({ success: false, error: "No password in response" });
+            }
+        })
         .catch(err => sendResponse({ success: false, error: err.message }));
         return true;
     }

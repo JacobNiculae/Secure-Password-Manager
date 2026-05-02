@@ -1,4 +1,5 @@
 import sys
+import os
 import threading
 from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PyQt6.QtGui import QIcon
@@ -12,6 +13,11 @@ main_window = None
 login_window = None
 tray_icon = None
 app = None
+
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 def start_server():
     thread = threading.Thread(target=run_server, daemon=True)
@@ -82,7 +88,7 @@ def main():
     app.setQuitOnLastWindowClosed(False)
 
     tray_icon = QSystemTrayIcon()
-    tray_icon.setIcon(QIcon("icon.ico"))
+    tray_icon.setIcon(QIcon(resource_path("icon.ico")))
     tray_icon.setVisible(True)
     update_tray(None)
 
