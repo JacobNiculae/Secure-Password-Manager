@@ -27,33 +27,34 @@ def start_server():
 
 def show_vault_selector(key: bytes):
     global vault_selector
-    if vault_selector and vault_selector.isVisible():
+    if vault_selector is not None:
+        # Reuse the existing window — just refresh and show (no flicker)
+        vault_selector.load_vaults()
+        vault_selector.show()
         vault_selector.raise_()
         vault_selector.activateWindow()
         return
-    vault_selector = VaultSelectorWindow(
-        key,
-        on_open_vault=open_vault,
-        on_lock=lock_vault
-    )
+    vault_selector = VaultSelectorWindow(key, on_open_vault=open_vault, on_lock=full_lock)
     vault_selector.show()
 
 def open_vault(key: bytes, vault_id: int, vault_name: str):
     global main_window, vault_selector
     set_session_vault(vault_id)
+    # Show main window first, then hide selector — prevents black-flash between windows
+    main_window = MainWindow(key, vault_id, vault_name, on_back=lambda: _back_to_selector(key))
+    main_window.show()
     if vault_selector:
         vault_selector.hide()
-    main_window = MainWindow(
-        key, vault_id, vault_name,
-        on_back=lambda: _back_to_selector(key)
-    )
-    main_window.show()
 
 def _back_to_selector(key: bytes):
     global main_window
     clear_session_vault()
-    main_window = None
+    # Show vault selector first, then close main window — prevents black-flash
     show_vault_selector(key)
+    old = main_window
+    main_window = None
+    if old:
+        old.close()
 
 def show_login():
     global login_window
@@ -63,11 +64,14 @@ def show_login():
     login_window.show()
 
 def on_login_success(key: bytes):
-    global tray_icon
+    global vault_selector
+    # Always create a fresh vault selector after login
+    vault_selector = None
     update_tray(key)
     show_vault_selector(key)
 
-def lock_vault():
+def full_lock():
+    """Lock everything and return to master-password login screen."""
     global main_window, vault_selector
     clear_session_key()
     if main_window:
@@ -77,7 +81,7 @@ def lock_vault():
         vault_selector.close()
         vault_selector = None
     update_tray(None)
-    tray_icon.setVisible(True)
+    show_login()
 
 def update_tray(key):
     global tray_icon
@@ -86,10 +90,10 @@ def update_tray(key):
     if key:
         open_action = menu.addAction("Open Vaults")
         open_action.triggered.connect(lambda: show_vault_selector(key))
-        lock_action = menu.addAction("Lock Vault")
-        lock_action.triggered.connect(lock_vault)
+        lock_action = menu.addAction("Lock")
+        lock_action.triggered.connect(full_lock)
     else:
-        unlock_action = menu.addAction("Unlock Vault")
+        unlock_action = menu.addAction("Unlock")
         unlock_action.triggered.connect(show_login)
 
     menu.addSeparator()

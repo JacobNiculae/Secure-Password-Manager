@@ -150,7 +150,7 @@ class MainWindow(QWidget):
         self.copy_btn = QPushButton("⎘ Copy Password")
         self.delete_btn = QPushButton("🗑 Delete Entry")
         self.toggle_btn = QPushButton("👁 Show Passwords")
-        self.lock_btn = QPushButton("🔒 Lock Vault")
+        self.lock_btn = QPushButton("🔒 Lock All")
 
         self.delete_btn.setStyleSheet(f"color: {DARK['red']};")
         self.lock_btn.setStyleSheet(f"color: {DARK['red']};")
@@ -161,7 +161,7 @@ class MainWindow(QWidget):
         self.copy_btn.clicked.connect(self.copy_password)
         self.delete_btn.clicked.connect(self.delete_selected)
         self.toggle_btn.clicked.connect(self.toggle_passwords)
-        self.lock_btn.clicked.connect(self.lock_vault)
+        self.lock_btn.clicked.connect(self.lock_all)
 
         for btn in [self.back_btn, self.add_btn, self.edit_btn, self.copy_btn,
                     self.delete_btn, self.toggle_btn, self.lock_btn]:
@@ -290,9 +290,9 @@ class MainWindow(QWidget):
     def go_back(self):
         if self.on_back:
             self.on_back()
-        self.close()
+        # on_back (_back_to_selector) shows vault selector then closes this window
 
-    def lock_vault(self):
-        from main import lock_vault as do_lock
-        do_lock()
-        self.close()
+    def lock_all(self):
+        from main import full_lock
+        full_lock()
+        # full_lock() closes this window

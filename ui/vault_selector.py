@@ -213,15 +213,22 @@ class VaultSelectorWindow(QWidget):
         """)
         minimize_btn.clicked.connect(self.showMinimized)
 
-        lock_btn = QPushButton("🔒")
-        lock_btn.setFixedSize(34, 34)
-        lock_btn.setToolTip("Lock")
+        lock_btn = QPushButton("🔒  Lock")
+        lock_btn.setFixedSize(80, 32)
         lock_btn.setStyleSheet(f"""
             QPushButton {{
-                background: transparent; border: none;
-                color: {DARK['red']}; font-size: 15px;
+                background-color: #2e1e28;
+                border: 1px solid {DARK['red']};
+                border-radius: 6px;
+                color: {DARK['red']};
+                font-size: 12px;
+                font-weight: bold;
+                padding: 0px 8px;
             }}
-            QPushButton:hover {{ background: #3a2a30; border-radius: 6px; }}
+            QPushButton:hover {{
+                background-color: {DARK['red']};
+                color: #1e1e2e;
+            }}
         """)
         lock_btn.clicked.connect(self._do_lock)
 
@@ -365,7 +372,7 @@ class VaultSelectorWindow(QWidget):
 
     def _do_lock(self):
         self.on_lock()
-        self.close()
+        # on_lock() (lock_vault in main.py) already closes this window
 
 
 # ──────────────────────────────────────────
