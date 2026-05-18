@@ -14,9 +14,10 @@ DARK = {
 }
 
 class AddEntryDialog(QDialog):
-    def __init__(self, key: bytes, parent=None, entry=None):
+    def __init__(self, key: bytes, vault_id: int, parent=None, entry=None):
         super().__init__(parent)
         self.key = key
+        self.vault_id = vault_id
         self.entry = entry
         self.setWindowTitle("Edit Entry" if entry else "Add New Entry")
         self.setFixedSize(420, 340)
@@ -185,5 +186,5 @@ class AddEntryDialog(QDialog):
         iv_user, enc_user = encrypt_password(username, self.key)
         iv_pass, enc_pass = encrypt_password(password, self.key)
 
-        save_entry(iv_site, enc_site, iv_user, enc_user, iv_pass, enc_pass)
+        save_entry(self.vault_id, iv_site, enc_site, iv_user, enc_user, iv_pass, enc_pass)
         self.close()

@@ -6,10 +6,12 @@ from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt
 from ui.login_window import LoginWindow
 from ui.main_window import MainWindow
-from server.local_server import run_server, clear_session_key
+from ui.vault_selector import VaultSelectorWindow
+from server.local_server import run_server, clear_session_key, set_session_vault, clear_session_vault
 from db.database import init_db
 
 main_window = None
+vault_selector = None
 login_window = None
 tray_icon = None
 app = None
@@ -23,14 +25,35 @@ def start_server():
     thread = threading.Thread(target=run_server, daemon=True)
     thread.start()
 
-def open_vault(key):
-    global main_window
-    if main_window and main_window.isVisible():
-        main_window.raise_()
-        main_window.activateWindow()
+def show_vault_selector(key: bytes):
+    global vault_selector
+    if vault_selector and vault_selector.isVisible():
+        vault_selector.raise_()
+        vault_selector.activateWindow()
         return
-    main_window = MainWindow(key)
+    vault_selector = VaultSelectorWindow(
+        key,
+        on_open_vault=open_vault,
+        on_lock=lock_vault
+    )
+    vault_selector.show()
+
+def open_vault(key: bytes, vault_id: int, vault_name: str):
+    global main_window, vault_selector
+    set_session_vault(vault_id)
+    if vault_selector:
+        vault_selector.hide()
+    main_window = MainWindow(
+        key, vault_id, vault_name,
+        on_back=lambda: _back_to_selector(key)
+    )
     main_window.show()
+
+def _back_to_selector(key: bytes):
+    global main_window
+    clear_session_vault()
+    main_window = None
+    show_vault_selector(key)
 
 def show_login():
     global login_window
@@ -42,23 +65,27 @@ def show_login():
 def on_login_success(key: bytes):
     global tray_icon
     update_tray(key)
-    open_vault(key)
+    show_vault_selector(key)
 
 def lock_vault():
-    global main_window
+    global main_window, vault_selector
     clear_session_key()
     if main_window:
         main_window.close()
         main_window = None
+    if vault_selector:
+        vault_selector.close()
+        vault_selector = None
     update_tray(None)
+    tray_icon.setVisible(True)
 
 def update_tray(key):
     global tray_icon
     menu = QMenu()
 
     if key:
-        open_action = menu.addAction("Open Vault")
-        open_action.triggered.connect(lambda: open_vault(key))
+        open_action = menu.addAction("Open Vaults")
+        open_action.triggered.connect(lambda: show_vault_selector(key))
         lock_action = menu.addAction("Lock Vault")
         lock_action.triggered.connect(lock_vault)
     else:

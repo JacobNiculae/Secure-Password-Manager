@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
 QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QMessageBox, QHeaderView, QLabel)
-from PyQt6.QtCore import Qt, QTimer, QPoint
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor
 import pyperclip
 from Encryption.vault import decrypt_password
@@ -18,9 +18,12 @@ DARK = {
 }
 
 class MainWindow(QWidget):
-    def __init__(self, key: bytes):
+    def __init__(self, key: bytes, vault_id: int, vault_name: str, on_back=None):
         super().__init__()
         self.key = key
+        self.vault_id = vault_id
+        self.vault_name = vault_name
+        self.on_back = on_back
         self.setWindowTitle("Secure Password Manager")
         self.setMinimumSize(900, 600)
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
@@ -101,7 +104,7 @@ class MainWindow(QWidget):
         title_layout = QHBoxLayout(title_bar)
         title_layout.setContentsMargins(16, 0, 8, 0)
 
-        title_label = QLabel("🔐 Secure Password Manager")
+        title_label = QLabel(f"🔐 {self.vault_name}")
         title_label.setStyleSheet(f"color: {DARK['text']}; font-weight: bold; font-size: 13px;")
 
         minimize_btn = QPushButton("—")
@@ -141,6 +144,7 @@ class MainWindow(QWidget):
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(8)
 
+        self.back_btn = QPushButton("← Vaults")
         self.add_btn = QPushButton("+ Add Entry")
         self.edit_btn = QPushButton("✏ Edit Entry")
         self.copy_btn = QPushButton("⎘ Copy Password")
@@ -151,6 +155,7 @@ class MainWindow(QWidget):
         self.delete_btn.setStyleSheet(f"color: {DARK['red']};")
         self.lock_btn.setStyleSheet(f"color: {DARK['red']};")
 
+        self.back_btn.clicked.connect(self.go_back)
         self.add_btn.clicked.connect(self.open_add_entry)
         self.edit_btn.clicked.connect(self.open_edit_entry)
         self.copy_btn.clicked.connect(self.copy_password)
@@ -158,7 +163,7 @@ class MainWindow(QWidget):
         self.toggle_btn.clicked.connect(self.toggle_passwords)
         self.lock_btn.clicked.connect(self.lock_vault)
 
-        for btn in [self.add_btn, self.edit_btn, self.copy_btn,
+        for btn in [self.back_btn, self.add_btn, self.edit_btn, self.copy_btn,
                     self.delete_btn, self.toggle_btn, self.lock_btn]:
             btn_layout.addWidget(btn)
 
@@ -192,13 +197,13 @@ class MainWindow(QWidget):
             self.move(event.globalPosition().toPoint() - self._drag_pos)
 
     def load_entries(self):
-        self.entries = get_entries()
+        self.entries = get_entries(self.vault_id)
         self.display_entries(self.entries)
 
     def display_entries(self, entries):
         self.table.setRowCount(len(entries))
         for row, entry in enumerate(entries):
-            id_, iv_site, enc_site, iv_user, enc_user, iv_pass, enc_pass = entry
+            _, iv_site, enc_site, iv_user, enc_user, iv_pass, enc_pass = entry
             try:
                 site = decrypt_password(iv_site, enc_site, self.key)
                 username = decrypt_password(iv_user, enc_user, self.key)
@@ -224,9 +229,8 @@ class MainWindow(QWidget):
             return
         filtered = []
         for entry in self.entries:
-            id_, iv_site, enc_site, iv_user, enc_user, iv_pass, enc_pass = entry
             try:
-                site = decrypt_password(iv_site, enc_site, self.key)
+                site = decrypt_password(entry[1], entry[2], self.key)
                 if text.lower() in site.lower():
                     filtered.append(entry)
             except Exception:
@@ -265,7 +269,7 @@ class MainWindow(QWidget):
             self.load_entries()
 
     def open_add_entry(self):
-        dialog = AddEntryDialog(self.key, self)
+        dialog = AddEntryDialog(self.key, self.vault_id, self)
         dialog.raise_()
         dialog.activateWindow()
         dialog.exec()
@@ -277,11 +281,16 @@ class MainWindow(QWidget):
             QMessageBox.warning(self, "Error", "Select an entry first")
             return
         entry = self.entries[row]
-        dialog = AddEntryDialog(self.key, self, entry=entry)
+        dialog = AddEntryDialog(self.key, self.vault_id, self, entry=entry)
         dialog.raise_()
         dialog.activateWindow()
         dialog.exec()
         self.load_entries()
+
+    def go_back(self):
+        if self.on_back:
+            self.on_back()
+        self.close()
 
     def lock_vault(self):
         from main import lock_vault as do_lock
