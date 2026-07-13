@@ -1,13 +1,18 @@
 import os
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-def encrypt_password(plaintext: str, key: bytes) -> tuple:
-    iv = os.urandom(12)
+def encrypt(plaintexts: list[str], key: bytes) -> list[tuple[bytes, bytes]]:
     aesgcm = AESGCM(key)
-    ciphertext = aesgcm.encrypt(iv, plaintext.encode(), None)
-    return iv, ciphertext
+    result = []
+    for plaintext in plaintexts:
+        iv = os.urandom(12)  # fresh IV per field — never reuse with AES-GCM
+        ciphertext = aesgcm.encrypt(iv, plaintext.encode(), None)
+        result.append((iv, ciphertext))
+    return result
 
-def decrypt_password(iv: bytes, ciphertext: bytes, key: bytes) -> str:
+#iv, ciphertext
+
+def decrypt(iv: bytes, ciphertext: bytes, key: bytes) -> str:
     aesgcm = AESGCM(key)
     plaintext = aesgcm.decrypt(iv, ciphertext, None)
     return plaintext.decode() 

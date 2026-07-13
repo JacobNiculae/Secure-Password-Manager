@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
 QLineEdit, QPushButton, QCheckBox, QMessageBox)
 from PyQt6.QtCore import Qt
-from Encryption.vault import encrypt_password, decrypt_password
+from Encryption.vault import encrypt, decrypt
 from db.database import save_entry, delete_entry
 from utils.password_gen import generate_password
 
@@ -154,9 +154,9 @@ class AddEntryDialog(QDialog):
     def populate_fields(self):
         id_, iv_site, enc_site, iv_user, enc_user, iv_pass, enc_pass = self.entry
         try:
-            self.site_input.setText(decrypt_password(iv_site, enc_site, self.key))
-            self.username_input.setText(decrypt_password(iv_user, enc_user, self.key))
-            self.password_input.setText(decrypt_password(iv_pass, enc_pass, self.key))
+            self.site_input.setText(decrypt(iv_site, enc_site, self.key))
+            self.username_input.setText(decrypt(iv_user, enc_user, self.key))
+            self.password_input.setText(decrypt(iv_pass, enc_pass, self.key))
             self.password_input.setEchoMode(QLineEdit.EchoMode.Normal)
         except Exception:
             self.site_input.setPlaceholderText("Could not decrypt")
@@ -182,9 +182,11 @@ class AddEntryDialog(QDialog):
         if self.entry:
             delete_entry(self.entry[0])
 
-        iv_site, enc_site = encrypt_password(site, self.key)
-        iv_user, enc_user = encrypt_password(username, self.key)
-        iv_pass, enc_pass = encrypt_password(password, self.key)
+        result = encrypt([site, username, password], self.key)
+        iv_site, enc_site = result[0]
+        iv_user, enc_user = result[1]
+        iv_pass, enc_pass = result[2]
+
 
         save_entry(self.vault_id, iv_site, enc_site, iv_user, enc_user, iv_pass, enc_pass)
         self.close()

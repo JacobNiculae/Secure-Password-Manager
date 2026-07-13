@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QScreen
 from PyQt6.QtWidgets import QApplication
-from Encryption.vault import encrypt_password, decrypt_password
+from Encryption.vault import encrypt, decrypt
 from Encryption.keygen import derive_key, generate_salt
 from db.database import (
     create_vault, get_vaults, delete_vault, get_entry_count,
@@ -147,7 +147,7 @@ class VaultSelectorWindow(QWidget):
 
     def _migrate_legacy(self):
         if has_legacy_entries() and not get_vaults():
-            iv, enc = encrypt_password("General", self.key)
+            iv, enc = encrypt(["General"], self.key)[0]
             master_salt = get_master_salt()
             master_hash = get_master_hash()
             vault_id = create_vault(iv, enc, master_salt, master_hash)
@@ -324,7 +324,7 @@ class VaultSelectorWindow(QWidget):
 
         for i, (vault_id, iv_name, enc_name) in enumerate(vaults_raw):
             try:
-                name = decrypt_password(iv_name, enc_name, self.key)
+                name = decrypt(iv_name, enc_name, self.key)
             except Exception:
                 name = "⚠ Corrupted"
             count = get_entry_count(vault_id)
@@ -344,7 +344,7 @@ class VaultSelectorWindow(QWidget):
         for v_id, iv_name, enc_name in get_vaults():
             if v_id == vault_id:
                 try:
-                    return decrypt_password(iv_name, enc_name, self.key)
+                    return decrypt(iv_name, enc_name, self.key)
                 except Exception:
                     return "Vault"
         return "Vault"
@@ -366,7 +366,7 @@ class VaultSelectorWindow(QWidget):
                 vault_salt = generate_salt()
                 vault_key = derive_key(password, vault_salt)
                 vault_hash = hashlib.sha256(vault_key).digest()
-                iv, enc = encrypt_password(name, self.key)
+                iv, enc = encrypt([name], self.key)[0]
                 create_vault(iv, enc, vault_salt, vault_hash)
                 self.load_vaults()
 

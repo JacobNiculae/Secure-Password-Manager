@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from Encryption.vault import encrypt_password
+from Encryption.vault import encrypt
 from db.database import save_entry
 from utils.password_gen import generate_password
 
@@ -31,7 +31,7 @@ def clear_session_vault():
 def generate():
     if session_key is None:
         return jsonify({"error": "vault is locked"}), 403
-    if session_vault_id is None:
+    elif session_vault_id is None:
         return jsonify({"error": "no vault open"}), 403
 
     data = request.json
@@ -40,9 +40,11 @@ def generate():
 
     password = generate_password()
 
-    iv_site, enc_site = encrypt_password(site, session_key)
-    iv_user, enc_user = encrypt_password(username, session_key)
-    iv_pass, enc_pass = encrypt_password(password, session_key)
+    result = encrypt([site, username, password], session_key)
+    iv_site, enc_site = result[0]
+    iv_user, enc_user = result[1]
+    iv_pass, enc_pass = result[2]
+
 
     save_entry(session_vault_id, iv_site, enc_site, iv_user, enc_user, iv_pass, enc_pass)
 

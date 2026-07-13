@@ -3,7 +3,7 @@ QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QMessageBox, QHeaderView
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor
 import pyperclip
-from Encryption.vault import decrypt_password
+from Encryption.vault import decrypt
 from db.database import get_entries, delete_entry
 from ui.add_entry import AddEntryDialog
 
@@ -205,9 +205,9 @@ class MainWindow(QWidget):
         for row, entry in enumerate(entries):
             _, iv_site, enc_site, iv_user, enc_user, iv_pass, enc_pass = entry
             try:
-                site = decrypt_password(iv_site, enc_site, self.key)
-                username = decrypt_password(iv_user, enc_user, self.key)
-                password = decrypt_password(iv_pass, enc_pass, self.key)
+                site = decrypt(iv_site, enc_site, self.key)
+                username = decrypt(iv_user, enc_user, self.key)
+                password = decrypt(iv_pass, enc_pass, self.key)
             except Exception:
                 site = "[error]"
                 username = "[error]"
@@ -230,7 +230,7 @@ class MainWindow(QWidget):
         filtered = []
         for entry in self.entries:
             try:
-                site = decrypt_password(entry[1], entry[2], self.key)
+                site = decrypt(entry[1], entry[2], self.key)
                 if text.lower() in site.lower():
                     filtered.append(entry)
             except Exception:
@@ -250,7 +250,7 @@ class MainWindow(QWidget):
         entry = self.entries[row]
         id_, iv_site, enc_site, iv_user, enc_user, iv_pass, enc_pass = entry
         try:
-            password = decrypt_password(iv_pass, enc_pass, self.key)
+            password = decrypt(iv_pass, enc_pass, self.key)
             pyperclip.copy(password)
             QMessageBox.information(self, "Copied", "Password copied. Clipboard clears in 30 seconds.")
             QTimer.singleShot(30000, lambda: pyperclip.copy(""))

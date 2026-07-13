@@ -71,17 +71,9 @@ def on_login_success(key: bytes):
     show_vault_selector(key)
 
 def full_lock():
-    """Lock everything and return to master-password login screen."""
-    global main_window, vault_selector
+    """Lock and close the application entirely."""
     clear_session_key()
-    if main_window:
-        main_window.close()
-        main_window = None
-    if vault_selector:
-        vault_selector.close()
-        vault_selector = None
-    update_tray(None)
-    show_login()
+    quit_app()
 
 def update_tray(key):
     global tray_icon
